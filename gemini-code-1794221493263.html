@@ -1,0 +1,2347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RADMOM - Sistema de Gestão Industrial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0b1120;
+      --panel-bg: rgba(15, 23, 42, 0.85);
+      --card-bg: rgba(30, 41, 59, 0.5);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent-yellow: #fbbf24;
+      --text-main: #ffffff;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* MODO MONOCROMÁTICO */
+    html.monochrome {
+      filter: grayscale(100%) contrast(110%);
+    }
+
+    body {
+      min-height: 100vh;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      transition: background 0.3s ease;
+      background: linear-gradient(rgba(240, 244, 248, 0.3), rgba(220, 230, 240, 0.4)),
+                  url('https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&q=80&w=1920') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    body.bg-sistema {
+      background: #cbd5e1 !important;
+    }
+
+    body.bg-ferramentaria {
+      background: #0b111e !important;
+    }
+
+    .page {
+      display: none;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .page.active {
+      display: flex;
+      justify-content: center;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.15);
+      color: #1e293b;
+    }
+
+    .main-card {
+      width: 100%;
+      max-width: 650px;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 16px;
+      padding: 32px 28px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+      color: #1e293b;
+    }
+
+    .ferramentaria-panel {
+      width: 100%;
+      max-width: 1200px;
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      color: #ffffff;
+    }
+
+    .login-header, .main-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .login-header h2, .main-header h2 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .login-header p, .main-header p {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 14px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #334155;
+      text-transform: uppercase;
+    }
+
+    .req {
+      color: var(--danger);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #0f172a;
+      font-size: 0.88rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    input[readonly] {
+      background: rgba(226, 232, 240, 0.7);
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
+    .login-options {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 22px;
+      font-size: 0.8rem;
+    }
+
+    .links-column {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: #2563eb;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .link-btn:hover {
+      text-decoration: underline;
+    }
+
+    .btn-login {
+      width: 100%;
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-login:hover {
+      background: #1d4ed8;
+    }
+
+    .shortcut-footer {
+      margin-top: 16px;
+      text-align: center;
+      border-top: 1px solid rgba(226, 232, 240, 0.8);
+      padding-top: 12px;
+    }
+
+    .shortcut-btn {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+
+    .shortcut-btn:hover {
+      color: #2563eb;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .radio-option input {
+      width: auto;
+      cursor: pointer;
+    }
+
+    .time-range {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .time-range span {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      color: #0f172a;
+      width: 100%;
+      max-width: 480px;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      position: relative;
+    }
+
+    .modal-header {
+      margin-bottom: 18px;
+    }
+
+    .modal-header h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .modal-header p {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .btn-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      color: #64748b;
+      cursor: pointer;
+    }
+
+    .step-box {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .whatsapp-info {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 12px;
+      border-radius: 8px;
+      color: #166534;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .whatsapp-info strong {
+      color: #15803d;
+    }
+
+    /* ESTILOS DE MÚLTIPLOS ITENS */
+    .item-card {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .item-title {
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: #2563eb;
+      text-transform: uppercase;
+    }
+
+    .btn-remove-item {
+      background: #fee2e2;
+      color: #ef4444;
+      border: 1px solid #fca5a5;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-remove-item:hover {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+    .btn-add-item {
+      width: 100%;
+      background: #f8fafc;
+      color: #2563eb;
+      border: 2px dashed #93c5fd;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-add-item:hover {
+      background: #eff6ff;
+      border-color: #2563eb;
+    }
+
+    /* FERRAMENTARIA */
+    .f-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 16px;
+    }
+
+    .f-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .f-btn-sair {
+      background: #881337;
+      color: #fecdd3;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      padding: 6px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .f-btn-sair:hover {
+      background: #9f1239;
+      color: #ffffff;
+    }
+
+    .f-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 24px;
+    }
+
+    .f-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .f-menu-btn {
+      background: #1e293b;
+      border: 1px solid #fbbf24;
+      color: #fbbf24;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.82rem;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+
+    .f-menu-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #fbbf24;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .f-section-label {
+      color: #fbbf24;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .f-filters-container {
+      margin-bottom: 24px;
+    }
+
+    .f-filters {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .f-filters input, .f-filters select, .f-add-form input, .f-add-form select {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    .f-filters input::placeholder, .f-add-form input::placeholder {
+      color: #475569;
+    }
+
+    .f-filters label, .f-add-form label {
+      color: #fbbf24;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .f-table-container {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .f-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      text-align: left;
+    }
+
+    .f-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: #fbbf24;
+      padding: 12px 14px;
+      font-weight: 700;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      text-transform: uppercase;
+    }
+
+    .f-table th:last-child {
+      border-right: none;
+    }
+
+    .f-table td {
+      padding: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #94a3b8;
+    }
+
+    .f-table-empty {
+      text-align: center;
+      padding: 32px;
+      color: #64748b;
+      font-size: 0.85rem;
+    }
+
+    .action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .btn-acao-lancado {
+      background: #2563eb;
+      color: #ffffff;
+      border: 1px solid #3b82f6;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-acao-lancado:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-acao-editar {
+      background: #f59e0b;
+      color: #ffffff;
+      border: 1px solid #fbbf24;
+      padding: 6px 9px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-acao-editar:hover {
+      background: #d97706;
+    }
+
+    .btn-acao-excluir {
+      background: #ef4444;
+      color: #ffffff;
+      border: 1px solid #f87171;
+      padding: 6px 9px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-acao-excluir:hover {
+      background: #dc2626;
+    }
+
+    .btn-acao-ferias {
+      background: #0284c7;
+      color: #ffffff;
+      border: 1px solid #38bdf8;
+      padding: 6px 9px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-acao-ferias:hover {
+      background: #0369a1;
+    }
+
+    .badge-concluido {
+      color: #22c55e;
+      font-weight: 700;
+    }
+
+    .f-add-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 24px;
+    }
+
+    .f-add-form {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .btn-cadastrar-func {
+      background: #fbbf24;
+      color: #0f172a;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-cadastrar-func:hover {
+      background: #f59e0b;
+    }
+
+    /* ESTILOS ABA ENTREGUE */
+    .entregue-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .entregue-col {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .entregue-col-header {
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #fbbf24;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge-verde {
+      background: #15803d;
+      color: #ffffff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      display: inline-block;
+    }
+
+    .status-badge-amarelo {
+      background: #b45309;
+      color: #ffffff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      display: inline-block;
+    }
+
+    .status-badge-ferias {
+      background: #0284c7;
+      color: #ffffff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      display: inline-block;
+    }
+
+    /* BOTÃO DE ALTO CONTRASTE / MONOCROMÁTICO */
+    .btn-monocromatico {
+      position: fixed;
+      bottom: 20px;
+      right: 90px;
+      z-index: 99999;
+      background: #1e293b;
+      color: #fbbf24;
+      border: 2px solid #fbbf24;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .btn-monocromatico:hover {
+      transform: scale(1.1);
+      background: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BOTÃO MONOCROMÁTICO (ACESSIBILIDADE) -->
+  <button class="btn-monocromatico" onclick="alternarModoMonocromatico()" title="Alternar modo monocromático / alto contraste" aria-label="Alternar modo monocromático">🎨</button>
+
+  <!-- WIDGET VLIBRAS (ACESSIBILIDADE LIBRAS CONFIGURADO PARA TRADUÇÃO DIRETA) -->
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>
+    // Inicialização otimizada para interpretação em Libras direta
+    new window.VLibras.Widget({
+      rootPath: 'https://vlibras.gov.br/app',
+      personalization: 'https://vlibras.gov.br/config/default_logo.json',
+      opacity: 0.95,
+      dictionary: 'pt'
+    });
+  </script>
+
+  <!-- TELA 1: LOGIN PRINCIPAL -->
+  <div id="page-login" class="page active">
+    <div class="login-card">
+      <div class="login-header">
+        <h2>RADMOM</h2>
+        <p>Apontamento diário de mão de obra</p>
+      </div>
+
+      <form id="form-login" autocomplete="off" onsubmit="event.preventDefault(); fazerLogin();">
+        <div class="form-group">
+          <label for="login-re">Registro da Empresa <span class="req">*</span></label>
+          <input type="text" id="login-re" placeholder="Digite seu registro de trabalho" aria-label="Registro da Empresa" autocomplete="off" required>
+        </div>
+
+        <div class="form-group">
+          <label for="login-senha">Senha de Acesso <span class="req">*</span></label>
+          <input type="password" id="login-senha" placeholder="Digite sua senha de acesso" aria-label="Senha de Acesso" autocomplete="new-password" required>
+        </div>
+
+        <div class="login-options">
+          <div class="links-column">
+            <button type="button" class="link-btn" onclick="abrirModalEsqueceuSenha()">Esqueceu a senha?</button>
+            <button type="button" class="link-btn" onclick="abrirModalPrimeiroAcesso()">Primeiro acesso?</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login">Entrar no Sistema</button>
+
+        <div class="shortcut-footer">
+          <button type="button" class="shortcut-btn" onclick="abrirFerramentariaLogin(event)">
+            ⚙️ Ferramentaria
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TELA 1.B: LOGIN ESPECÍFICO DA FERRAMENTARIA -->
+  <div id="page-login-ferramentaria" class="page">
+    <div class="login-card">
+      <div class="login-header">
+        <h2>Ferramentaria</h2>
+        <p>Acesso Restrito ao Módulo</p>
+      </div>
+
+      <form id="form-login-ferramentaria" autocomplete="off" onsubmit="event.preventDefault(); fazerLoginFerramentaria();">
+        <div class="form-group">
+          <label for="fer-nome">Nome do Funcionário</label>
+          <input type="text" id="fer-nome" readonly placeholder="Aguardando número de registro válido..." style="background: rgba(226, 232, 240, 0.5); font-weight: 600;">
+        </div>
+
+        <div class="form-group">
+          <label for="fer-re">Registro da Empresa <span class="req">*</span></label>
+          <input type="text" id="fer-re" placeholder="Digite seu registro autorizado" aria-label="Registro da Empresa" oninput="detectarFuncionarioFerramentaria(this.value)" autocomplete="off" required>
+        </div>
+
+        <div class="form-group">
+          <label for="fer-senha">Senha de Acesso <span class="req">*</span></label>
+          <input type="password" id="fer-senha" placeholder="Digite sua senha" aria-label="Senha de Acesso" autocomplete="new-password" required>
+        </div>
+
+        <button type="submit" class="btn-login" style="background: #fbbf24; color: #0f172a; margin-top: 10px;">Entrar na Ferramentaria</button>
+        
+        <div style="text-align: center; margin-top: 14px;">
+          <button type="button" class="link-btn" style="color: #64748b;" onclick="navegarParaPage('page-login')">Voltar ao Login Principal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TELA 2: PÁGINA PRINCIPAL / APONTAMENTO DE MÃO DE OBRA -->
+  <div id="page-sistema" class="page">
+    <div class="main-card">
+      <div class="main-header">
+        <h2>RADMOM</h2>
+        <p>Apontamento de mão de obra</p>
+      </div>
+
+      <form id="form-apontamento" onsubmit="event.preventDefault(); enviarApontamento();">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="apt-nome">Nome do Funcionário</label>
+            <input type="text" id="apt-nome" readonly>
+          </div>
+          <div class="form-group">
+            <label for="apt-re">Registro do Funcionário</label>
+            <input type="text" id="apt-re" readonly>
+          </div>
+        </div>
+
+        <!-- CONTAINER DOS ITENS DE APONTAMENTO -->
+        <div id="container-itens-apontamento">
+          <!-- ITEM 1 PADRÃO -->
+          <div class="item-card" data-item-index="1">
+            <div class="item-header">
+              <span class="item-title">Item #1</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Ordem de Serviço <span class="req">*</span></label>
+                <input type="text" class="apt-os" placeholder="Digite a ordem de serviço ou não se aplica" aria-label="Ordem de Serviço" required>
+              </div>
+              <div class="form-group">
+                <label>Código da Peça <span class="req">*</span></label>
+                <input type="text" class="apt-partnumber" placeholder="Digite o código da peça" aria-label="Código da peça" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Data Inicial <span class="req">*</span></label>
+                <input type="date" class="apt-data-ini" aria-label="Data Inicial" required>
+              </div>
+              <div class="form-group">
+                <label>Horário Inicial <span class="req">*</span></label>
+                <input type="time" class="apt-hora-ini" aria-label="Horário Inicial" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Data Final <span class="req">*</span></label>
+                <input type="date" class="apt-data-fim" aria-label="Data Final" required>
+              </div>
+              <div class="form-group">
+                <label>Horário Finalizado <span class="req">*</span></label>
+                <input type="time" class="apt-hora-fim" aria-label="Horário Finalizado" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Horário de Almoço <span class="req">*</span></label>
+                <div class="time-range">
+                  <input type="time" class="apt-almoco-ini" aria-label="Início do Almoço" required>
+                  <span>às</span>
+                  <input type="time" class="apt-almoco-fim" aria-label="Fim do Almoço" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Sábado Trabalhado ou Escala <span class="req">*</span></label>
+                <select class="apt-sabado-escala" aria-label="Escala de trabalho" required>
+                  <option value="NORMAL" selected>Dia Normal de Segunda a Sexta</option>
+                  <option value="SABADO_1">Sábado Primeiro Turno</option>
+                  <option value="SABADO_2">Sábado Segundo Turno</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Finalizado? <span class="req">*</span></label>
+                <div class="radio-group">
+                  <label class="radio-option">
+                    <input type="radio" name="finalizado_1" value="SIM" required> SIM
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" name="finalizado_1" value="NÃO" required> NÃO
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Descrição do Serviço Executado <span class="req">*</span></label>
+              <textarea class="apt-descricao" rows="3" placeholder="Descreva detalhadamente o serviço executado..." aria-label="Descrição do serviço" required></textarea>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn-add-item" onclick="adicionarMaisUmItem()">
+          ➕ ADICIONAR MAIS UM ITEM
+        </button>
+
+        <button type="submit" class="btn-login">ENVIAR TODOS OS APONTAMENTOS</button>
+        
+        <div style="text-align: center; margin-top: 12px;">
+          <button type="button" class="link-btn" style="color: #ef4444;" onclick="deslogar()">Sair do Sistema</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TELA 3: PAINEL DA FERRAMENTARIA -->
+  <div id="page-ferramentaria" class="page">
+    <div class="ferramentaria-panel">
+      <div class="f-header">
+        <div class="f-title">
+          🔧 MÓDULO DE GESTÃO DA FERRAMENTARIA
+        </div>
+        <button class="f-btn-sair" onclick="deslogar()">Sair</button>
+      </div>
+
+      <div class="f-layout">
+        <!-- MENU LATERAL -->
+        <div class="f-menu">
+          <button class="f-menu-btn active" onclick="selecionarAbaFerramentaria('APONTAMENTOS', this)">APONTAMENTOS</button>
+          <button class="f-menu-btn" onclick="selecionarAbaFerramentaria('LANCADOS', this)">LANÇADOS</button>
+          <button class="f-menu-btn" onclick="selecionarAbaFerramentaria('RELATORIO', this)">RELATÓRIO</button>
+          <button class="f-menu-btn" onclick="selecionarAbaFerramentaria('FUNCIONARIOS', this)">FUNCIONÁRIOS</button>
+          <button class="f-menu-btn" onclick="selecionarAbaFerramentaria('ENTREGUE', this)">ENTREGUE</button>
+        </div>
+
+        <!-- CONTEÚDO DA FERRAMENTARIA -->
+        <div class="f-content">
+          
+          <!-- FILTROS DE BUSCA -->
+          <div id="container-filtros" class="f-filters-container">
+            <div class="f-section-label">Filtros de Busca</div>
+            <div class="f-filters">
+              <div class="form-group">
+                <label for="filtro-os">Ordem de Serviço</label>
+                <input type="text" id="filtro-os" placeholder="Filtrar por ordem de serviço" aria-label="Filtrar por ordem de serviço" oninput="carregarTabelaFerramentaria()">
+              </div>
+              <div class="form-group">
+                <label for="filtro-nome">Funcionário</label>
+                <input type="text" id="filtro-nome" placeholder="Filtrar por nome" aria-label="Filtrar por nome" oninput="carregarTabelaFerramentaria()">
+              </div>
+              <div class="form-group">
+                <label for="filtro-re">Registro do Funcionário</label>
+                <input type="text" id="filtro-re" placeholder="Filtrar por registro" aria-label="Filtrar por registro" oninput="carregarTabelaFerramentaria()">
+              </div>
+              <div class="form-group">
+                <label for="filtro-partnumber">Código da Peça</label>
+                <input type="text" id="filtro-partnumber" placeholder="Filtrar por código da peça" aria-label="Filtrar por código da peça" oninput="carregarTabelaFerramentaria()">
+              </div>
+              <div class="form-group">
+                <label for="filtro-turno">Turno</label>
+                <select id="filtro-turno" aria-label="Filtrar por turno" onchange="carregarTabelaFerramentaria()">
+                  <option value="">Todos</option>
+                  <option value="1º Turno">Primeiro Turno</option>
+                  <option value="2º Turno">Segundo Turno</option>
+                  <option value="3º Turno">Terceiro Turno</option>
+                  <option value="ADM">Administrativo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="filtro-data">Data</label>
+                <input type="date" id="filtro-data" aria-label="Filtrar por data" onchange="carregarTabelaFerramentaria()">
+              </div>
+            </div>
+          </div>
+
+          <!-- FORMULÁRIO DE CADASTRO DE FUNCIONÁRIO -->
+          <div id="container-add-funcionario" class="f-add-card" style="display: none;">
+            <div class="f-section-label">Cadastrar Novo Funcionário</div>
+            <form id="form-cad-funcionario" class="f-add-form" onsubmit="event.preventDefault(); cadastrarNovoFuncionario();">
+              <div class="form-group">
+                <label for="func-nome">Nome do Funcionário <span class="req">*</span></label>
+                <input type="text" id="func-nome" placeholder="Nome Completo" aria-label="Nome do funcionário" required>
+              </div>
+              <div class="form-group">
+                <label for="func-re">Registro do Funcionário <span class="req">*</span></label>
+                <input type="text" id="func-re" placeholder="Exemplo: 2950" aria-label="Registro do funcionário" required>
+              </div>
+              <div class="form-group">
+                <label for="func-turno">Turno <span class="req">*</span></label>
+                <select id="func-turno" aria-label="Turno do funcionário" required>
+                  <option value="1º Turno">Primeiro Turno</option>
+                  <option value="2º Turno">Segundo Turno</option>
+                  <option value="3º Turno">Terceiro Turno</option>
+                  <option value="ADM">Administrativo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="func-setor">Setor</label>
+                <input type="text" id="func-setor" value="Ferramentaria" readonly style="background: rgba(226, 232, 240, 0.2); font-weight: 700; color: #fbbf24;">
+              </div>
+              <button type="submit" class="btn-cadastrar-func">Cadastrar</button>
+            </form>
+          </div>
+
+          <!-- BLOCO DA TABELA PRINCIPAL -->
+          <div id="container-tabela-principal">
+            <div class="f-section-label" id="titulo-secao-tabela">Apontamentos Realizados</div>
+
+            <div class="f-table-container">
+              <table class="f-table">
+                <thead id="tabela-ferramentaria-head">
+                  <tr>
+                    <th>DATA</th>
+                    <th>OPERADOR / RE</th>
+                    <th>OS</th>
+                    <th>FERRAMENTA / PART</th>
+                    <th>SERVIÇO</th>
+                    <th>AÇÃO</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-ferramentaria-body">
+                  <tr>
+                    <td colspan="6" class="f-table-empty">Nenhum apontamento pendente encontrado.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- CONTEÚDO DA ABA ENTREGUE -->
+          <div id="container-entregue" style="display: none;">
+            <div class="f-section-label">Controle de Apontamentos Entregues</div>
+            
+            <div class="entregue-grid">
+              <!-- COLUNA SÁBADO 1º TURNO -->
+              <div class="entregue-col">
+                <div class="entregue-col-header">Sábado Primeiro Turno</div>
+                <div class="f-table-container">
+                  <table class="f-table">
+                    <thead>
+                      <tr>
+                        <th>Registro</th>
+                        <th>Nome do Funcionário</th>
+                        <th>Status</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabela-entregue-t1">
+                      <tr>
+                        <td colspan="4" class="f-table-empty">Carregando dados...</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- COLUNA SÁBADO 2º TURNO -->
+              <div class="entregue-col">
+                <div class="entregue-col-header">Sábado Segundo Turno</div>
+                <div class="f-table-container">
+                  <table class="f-table">
+                    <thead>
+                      <tr>
+                        <th>Registro</th>
+                        <th>Nome do Funcionário</th>
+                        <th>Status</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabela-entregue-t2">
+                      <tr>
+                        <td colspan="4" class="f-table-empty">Carregando dados...</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR APONTAMENTO -->
+  <div id="modal-editar-apontamento" class="modal-overlay">
+    <div class="modal-box">
+      <button class="btn-close" onclick="fecharModalEditarApontamento()">&times;</button>
+      <div class="modal-header">
+        <h3>Editar Apontamento</h3>
+        <p>Altere os dados do registro selecionado abaixo.</p>
+      </div>
+
+      <form id="form-edit-apontamento" onsubmit="event.preventDefault(); salvarEdicaoApontamento();">
+        <input type="hidden" id="edit-apt-id">
+        <div class="form-group">
+          <label for="edit-apt-os">Ordem de Serviço <span class="req">*</span></label>
+          <input type="text" id="edit-apt-os" aria-label="Ordem de Serviço" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-apt-partnumber">Código da Peça <span class="req">*</span></label>
+          <input type="text" id="edit-apt-partnumber" aria-label="Código da Peça" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-apt-data">Data Inicial <span class="req">*</span></label>
+          <input type="date" id="edit-apt-data" aria-label="Data Inicial" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-apt-descricao">Descrição do Serviço <span class="req">*</span></label>
+          <textarea id="edit-apt-descricao" rows="3" aria-label="Descrição do Serviço" required></textarea>
+        </div>
+
+        <button type="submit" class="btn-login" style="background:#fbbf24; color:#0f172a;">Salvar Alterações</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR FUNCIONÁRIO -->
+  <div id="modal-editar-funcionario" class="modal-overlay">
+    <div class="modal-box">
+      <button class="btn-close" onclick="fecharModalEditarFuncionario()">&times;</button>
+      <div class="modal-header">
+        <h3>Editar Funcionário</h3>
+        <p>Atualize as informações do funcionário cadastrado.</p>
+      </div>
+
+      <form id="form-edit-funcionario" onsubmit="event.preventDefault(); salvarEdicaoFuncionario();">
+        <input type="hidden" id="edit-func-docid">
+        <div class="form-group">
+          <label for="edit-func-nome">Nome do Funcionário <span class="req">*</span></label>
+          <input type="text" id="edit-func-nome" aria-label="Nome do funcionário" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-func-re">Registro do Funcionário <span class="req">*</span></label>
+          <input type="text" id="edit-func-re" aria-label="Registro do funcionário" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-func-turno">Turno <span class="req">*</span></label>
+          <select id="edit-func-turno" aria-label="Turno do funcionário" required>
+            <option value="1º Turno">Primeiro Turno</option>
+            <option value="2º Turno">Segundo Turno</option>
+            <option value="3º Turno">Terceiro Turno</option>
+            <option value="ADM">Administrativo</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Setor</label>
+          <input type="text" value="Ferramentaria" readonly style="background: rgba(226, 232, 240, 0.5); font-weight: 700;">
+        </div>
+
+        <button type="submit" class="btn-login" style="background:#fbbf24; color:#0f172a;">Salvar Alterações</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE PRIMEIRO ACESSO -->
+  <div id="modal-primeiro-acesso" class="modal-overlay">
+    <div class="modal-box">
+      <button class="btn-close" onclick="fecharModalPrimeiroAcesso()">&times;</button>
+      <div class="modal-header">
+        <h3>Primeiro Acesso</h3>
+        <p>Preencha os dados abaixo para cadastrar o seu usuário no sistema.</p>
+      </div>
+
+      <form id="form-primeiro-acesso" onsubmit="event.preventDefault(); cadastrarPrimeiroAcesso();">
+        <div class="form-group">
+          <label for="cad-nome">Nome Completo <span class="req">*</span></label>
+          <input type="text" id="cad-nome" placeholder="Digite seu nome completo" aria-label="Nome completo" required>
+        </div>
+
+        <div class="form-group">
+          <label for="cad-re">Registro da Empresa <span class="req">*</span></label>
+          <input type="text" id="cad-re" placeholder="Digite seu registro" aria-label="Registro da empresa" required>
+        </div>
+
+        <div class="form-group">
+          <label for="cad-empresa">Empresa ou Unidade <span class="req">*</span></label>
+          <select id="cad-empresa" aria-label="Empresa ou Unidade" required>
+            <option value="" disabled selected>Selecione a empresa</option>
+            <option value="DIADEMA 01">DIADEMA 01</option>
+            <option value="S.B.C 14">S.B.C 14</option>
+            <option value="IGARASSU 12">IGARASSU 12</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="cad-senha">Criar Senha <span class="req">*</span></label>
+          <input type="password" id="cad-senha" placeholder="Digite sua senha" aria-label="Criar senha" required>
+        </div>
+
+        <div class="form-group">
+          <label for="cad-conf-senha">Confirmar Senha <span class="req">*</span></label>
+          <input type="password" id="cad-conf-senha" placeholder="Confirme sua senha" aria-label="Confirmar senha" required>
+        </div>
+
+        <button type="submit" class="btn-login">Concluir Cadastro</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE RECUPERAÇÃO VIA WHATSAPP E CÓDIGO -->
+  <div id="modal-esqueceu" class="modal-overlay">
+    <div class="modal-box">
+      <button class="btn-close" onclick="fecharModalEsqueceuSenha()">&times;</button>
+
+      <div id="passo-1-whatsapp" class="step-box">
+        <div class="modal-header">
+          <h3>Redefinir Senha</h3>
+          <p>Informe o seu registro e o seu número de telefone com código de área para solicitar a verificação.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="rec-re">Registro da Empresa <span class="req">*</span></label>
+          <input type="text" id="rec-re" placeholder="Exemplo: 1025" aria-label="Registro da Empresa">
+        </div>
+
+        <div class="form-group">
+          <label for="rec-phone">Número de Telefone WhatsApp <span class="req">*</span></label>
+          <input type="text" id="rec-phone" placeholder="Exemplo: 11988887777" aria-label="Número do WhatsApp">
+        </div>
+
+        <div class="whatsapp-info">
+          Após clicar em prosseguir, abrirá a conversa com o suporte (<strong>11 96369-5876</strong>). Envie a mensagem solicitando o código de verificação.
+        </div>
+
+        <button type="button" class="btn-login" style="background:#22c55e;" onclick="enviarSolicitacaoWhatsapp()">
+          Prosseguir para o WhatsApp
+        </button>
+      </div>
+
+      <div id="passo-2-codigo" class="step-box" style="display:none;">
+        <div class="modal-header">
+          <h3>Validar Código</h3>
+          <p>Insira o código enviado pelo suporte no seu WhatsApp para redefinir a senha.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="rec-codigo">Código de Verificação <span class="req">*</span></label>
+          <input type="text" id="rec-codigo" placeholder="Digite o código recebido" aria-label="Código de Verificação">
+        </div>
+
+        <button type="button" class="btn-login" onclick="validarCodigoVerificacao()">
+          Validar Código
+        </button>
+      </div>
+
+      <div id="passo-3-novasenha" class="step-box" style="display:none;">
+        <div class="modal-header">
+          <h3>Cadastrar Nova Senha</h3>
+          <p>Código verificado! Escolha a sua nova senha de acesso.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="rec-nova-senha">Nova Senha <span class="req">*</span></label>
+          <input type="password" id="rec-nova-senha" placeholder="Digite sua nova senha" aria-label="Nova Senha">
+        </div>
+
+        <div class="form-group">
+          <label for="rec-conf-senha">Confirme a Nova Senha <span class="req">*</span></label>
+          <input type="password" id="rec-conf-senha" placeholder="Confirme a nova senha" aria-label="Confirmar Nova Senha">
+        </div>
+
+        <button type="button" class="btn-login" onclick="salvarNovaSenha()">
+          Salvar Nova Senha
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFDUVQHsCWck8ZoxBaJu5OhPvYL17LTI4",
+      authDomain: "radmom-4e7e1.firebaseapp.com",
+      projectId: "radmom-4e7e1",
+      storageBucket: "radmom-4e7e1.firebasestorage.app",
+      messagingSenderId: "648343638651",
+      appId: "1:648343638651:web:f1ba1056287359ea09c8de",
+      measurementId: "G-F4G4B7DJ96"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let usuarioLogado = null;
+    let reAtualModoRecuperacao = "";
+    let abaAtualFerramentaria = 'APONTAMENTOS';
+    let timerAutoUpdate = null;
+    let contadorItens = 1;
+
+    // ALTERNAR MODO MONOCROMÁTICO
+    function alternarModoMonocromatico() {
+      document.documentElement.classList.toggle('monochrome');
+    }
+
+    // LISTA DE REs AUTORIZADOS NA FERRAMENTARIA
+    const ferramentariaAutorizados = {
+      "33": "Reginaldo da Silva Quintania",
+      "203": "Célio Ribeiro",
+      "259": "Adailton da Silva Sousa",
+      "1490": "Luciano Igesca Galvan",
+      "2950": "Dalton Porreca de Moraes",
+      "854": "Rubens Alves Alamino",
+      "2735": "Jorge Luiz de Barros",
+      "2793": "Maria Claudia Pimenta Oliveira",
+      "3037": "Clara Simões Soler"
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      limparCamposLogin();
+    });
+
+    function limparCamposLogin() {
+      document.getElementById('login-re').value = '';
+      document.getElementById('login-senha').value = '';
+      document.getElementById('fer-re').value = '';
+      document.getElementById('fer-senha').value = '';
+      document.getElementById('fer-nome').value = '';
+    }
+
+    function navegarParaPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById(pageId);
+      if (target) {
+        target.classList.add('active');
+      }
+
+      document.body.classList.remove('bg-sistema', 'bg-ferramentaria');
+      if (timerAutoUpdate) clearInterval(timerAutoUpdate);
+
+      if (pageId === 'page-sistema') {
+        document.body.classList.add('bg-sistema');
+      } else if (pageId === 'page-ferramentaria') {
+        document.body.classList.add('bg-ferramentaria');
+        carregarTabelaFerramentaria();
+        timerAutoUpdate = setInterval(carregarTabelaFerramentaria, 5000);
+      }
+    }
+
+    function adicionarMaisUmItem() {
+      contadorItens++;
+      const container = document.getElementById('container-itens-apontamento');
+      
+      const novoItem = document.createElement('div');
+      novoItem.className = 'item-card';
+      novoItem.setAttribute('data-item-index', contadorItens);
+      novoItem.innerHTML = `
+        <div class="item-header">
+          <span class="item-title">Item #${contadorItens}</span>
+          <button type="button" class="btn-remove-item" onclick="removerItemCard(this)">🗑️ Remover Item</button>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ordem de Serviço <span class="req">*</span></label>
+            <input type="text" class="apt-os" placeholder="Clique ou digite a ordem de serviço" aria-label="Ordem de Serviço" onclick="verificarMesmoItem(this)" required>
+          </div>
+          <div class="form-group">
+            <label>Código da Peça <span class="req">*</span></label>
+            <input type="text" class="apt-partnumber" placeholder="Digite o código da peça" aria-label="Código da peça" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Data Inicial <span class="req">*</span></label>
+            <input type="date" class="apt-data-ini" aria-label="Data Inicial" required>
+          </div>
+          <div class="form-group">
+            <label>Horário Inicial <span class="req">*</span></label>
+            <input type="time" class="apt-hora-ini" aria-label="Horário Inicial" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Data Final <span class="req">*</span></label>
+            <input type="date" class="apt-data-fim" aria-label="Data Final" required>
+          </div>
+          <div class="form-group">
+            <label>Horário Finalizado <span class="req">*</span></label>
+            <input type="time" class="apt-hora-fim" aria-label="Horário Finalizado" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Horário de Almoço <span class="req">*</span></label>
+            <div class="time-range">
+              <input type="time" class="apt-almoco-ini" aria-label="Início do Almoço" required>
+              <span>às</span>
+              <input type="time" class="apt-almoco-fim" aria-label="Fim do Almoço" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Sábado Trabalhado ou Escala <span class="req">*</span></label>
+            <select class="apt-sabado-escala" aria-label="Escala de trabalho" required>
+              <option value="NORMAL" selected>Dia Normal de Segunda a Sexta</option>
+              <option value="SABADO_1">Sábado Primeiro Turno</option>
+              <option value="SABADO_2">Sábado Segundo Turno</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Finalizado? <span class="req">*</span></label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="finalizado_${contadorItens}" value="SIM" required> SIM
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="finalizado_${contadorItens}" value="NÃO" required> NÃO
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Descrição do Serviço Executado <span class="req">*</span></label>
+          <textarea class="apt-descricao" rows="3" placeholder="Descreva detalhadamente o serviço executado..." aria-label="Descrição do serviço" required></textarea>
+        </div>
+      `;
+
+      container.appendChild(novoItem);
+    }
+
+    function removerItemCard(botao) {
+      const itemCard = botao.closest('.item-card');
+      if (itemCard) {
+        itemCard.remove();
+      }
+    }
+
+    function verificarMesmoItem(inputOs) {
+      if (inputOs.dataset.perguntado === "true") return;
+
+      const primeiroItem = document.querySelector('.item-card[data-item-index="1"]');
+      if (!primeiroItem) return;
+
+      const osOrig = primeiroItem.querySelector('.apt-os').value.trim();
+      const partOrig = primeiroItem.querySelector('.apt-partnumber').value.trim();
+
+      if (!osOrig && !partOrig) {
+        alert("Preencha primeiro a Ordem de Serviço (OS) e o Part Number do Item #1!");
+        return;
+      }
+
+      inputOs.dataset.perguntado = "true";
+
+      if (confirm("MESMO ITEM?\nDeseja copiar a Ordem de Serviço (OS) e o Part Number do primeiro item?")) {
+        const itemCard = inputOs.closest('.item-card');
+        const inputPart = itemCard.querySelector('.apt-partnumber');
+
+        inputOs.value = osOrig;
+        inputPart.value = partOrig;
+
+        inputOs.readOnly = true;
+        inputPart.readOnly = true;
+      }
+    }
+
+    async function enviarApontamento() {
+      const cards = document.querySelectorAll('.item-card');
+      if (cards.length === 0) return;
+
+      let apontamentosParaSalvar = [];
+
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        const index = card.getAttribute('data-item-index');
+        
+        const os = card.querySelector('.apt-os').value.trim();
+        const partNumber = card.querySelector('.apt-partnumber').value.trim();
+        const dataIni = card.querySelector('.apt-data-ini').value;
+        const horaIni = card.querySelector('.apt-hora-ini').value;
+        const dataFim = card.querySelector('.apt-data-fim').value;
+        const horaFim = card.querySelector('.apt-hora-fim').value;
+        const almocoIni = card.querySelector('.apt-almoco-ini').value;
+        const almocoFim = card.querySelector('.apt-almoco-fim').value;
+        const sabadoEscala = card.querySelector('.apt-sabado-escala').value;
+        const finalizadoRadio = card.querySelector(`input[name="finalizado_${index}"]:checked`);
+        const finalizado = finalizadoRadio ? finalizadoRadio.value : 'NÃO';
+        const descricao = card.querySelector('.apt-descricao').value.trim();
+
+        if (!os || !partNumber || !dataIni || !horaIni || !dataFim || !horaFim || !almocoIni || !almocoFim || !descricao) {
+          alert(`Preencha todos os campos obrigatórios do Item #${i + 1}!`);
+          return;
+        }
+
+        apontamentosParaSalvar.push({
+          funcionario: usuarioLogado.nome,
+          re: usuarioLogado.re,
+          empresa: usuarioLogado.empresa,
+          os: os,
+          partNumber: partNumber,
+          dataInicial: dataIni,
+          horarioInicial: horaIni,
+          dataFinal: dataFim,
+          horarioFinal: horaFim,
+          horarioAlmoco: `${almocoIni} às ${almocoFim}`,
+          sabadoEscala: sabadoEscala,
+          finalizado: finalizado,
+          descricaoServico: descricao,
+          statusFerramentaria: 'PENDENTE',
+          criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      try {
+        const batch = db.batch();
+
+        apontamentosParaSalvar.forEach(apt => {
+          const docRef = db.collection("apontamentos").doc();
+          batch.set(docRef, apt);
+        });
+
+        await batch.commit();
+
+        alert(`${apontamentosParaSalvar.length} apontamento(s) registrado(s) com sucesso!`);
+        
+        document.getElementById('form-apontamento').reset();
+        const container = document.getElementById('container-itens-apontamento');
+        
+        container.innerHTML = `
+          <div class="item-card" data-item-index="1">
+            <div class="item-header">
+              <span class="item-title">Item #1</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Ordem de Serviço <span class="req">*</span></label>
+                <input type="text" class="apt-os" placeholder="Digite a ordem de serviço ou não se aplica" aria-label="Ordem de Serviço" required>
+              </div>
+              <div class="form-group">
+                <label>Código da Peça <span class="req">*</span></label>
+                <input type="text" class="apt-partnumber" placeholder="Digite o código da peça" aria-label="Código da peça" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Data Inicial <span class="req">*</span></label>
+                <input type="date" class="apt-data-ini" aria-label="Data Inicial" required>
+              </div>
+              <div class="form-group">
+                <label>Horário Inicial <span class="req">*</span></label>
+                <input type="time" class="apt-hora-ini" aria-label="Horário Inicial" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Data Final <span class="req">*</span></label>
+                <input type="date" class="apt-data-fim" aria-label="Data Final" required>
+              </div>
+              <div class="form-group">
+                <label>Horário Finalizado <span class="req">*</span></label>
+                <input type="time" class="apt-hora-fim" aria-label="Horário Finalizado" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Horário de Almoço <span class="req">*</span></label>
+                <div class="time-range">
+                  <input type="time" class="apt-almoco-ini" aria-label="Início do Almoço" required>
+                  <span>às</span>
+                  <input type="time" class="apt-almoco-fim" aria-label="Fim do Almoço" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Sábado Trabalhado ou Escala <span class="req">*</span></label>
+                <select class="apt-sabado-escala" aria-label="Escala de trabalho" required>
+                  <option value="NORMAL" selected>Dia Normal de Segunda a Sexta</option>
+                  <option value="SABADO_1">Sábado Primeiro Turno</option>
+                  <option value="SABADO_2">Sábado Segundo Turno</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Finalizado? <span class="req">*</span></label>
+                <div class="radio-group">
+                  <label class="radio-option">
+                    <input type="radio" name="finalizado_1" value="SIM" required> SIM
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" name="finalizado_1" value="NÃO" required> NÃO
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Descrição do Serviço Executado <span class="req">*</span></label>
+              <textarea class="apt-descricao" rows="3" placeholder="Descreva detalhadamente o serviço executado..." aria-label="Descrição do serviço" required></textarea>
+            </div>
+          </div>
+        `;
+
+        contadorItens = 1;
+        document.getElementById('apt-nome').value = usuarioLogado.nome;
+        document.getElementById('apt-re').value = usuarioLogado.re;
+
+      } catch (error) {
+        console.error("Erro ao salvar apontamentos em lote:", error);
+        alert("Erro ao salvar os apontamentos no banco de dados.");
+      }
+    }
+
+    function selecionarAbaFerramentaria(aba, elemento) {
+      document.querySelectorAll('.f-menu-btn').forEach(btn => btn.classList.remove('active'));
+      elemento.classList.add('active');
+      abaAtualFerramentaria = aba;
+      
+      const containerFiltros = document.getElementById('container-filtros');
+      const containerAddFunc = document.getElementById('container-add-funcionario');
+      const containerTabelaPrincipal = document.getElementById('container-tabela-principal');
+      const containerEntregue = document.getElementById('container-entregue');
+      const thead = document.getElementById('tabela-ferramentaria-head');
+      
+      if (aba === 'LANCADOS' || aba === 'FUNCIONARIOS' || aba === 'ENTREGUE') {
+        containerFiltros.style.display = 'none';
+      } else {
+        containerFiltros.style.display = 'block';
+      }
+
+      if (aba === 'ENTREGUE') {
+        containerTabelaPrincipal.style.display = 'none';
+        containerAddFunc.style.display = 'none';
+        containerEntregue.style.display = 'block';
+        carregarAbaEntregue();
+        return;
+      } else {
+        containerTabelaPrincipal.style.display = 'block';
+        containerEntregue.style.display = 'none';
+      }
+
+      if (aba === 'FUNCIONARIOS') {
+        containerAddFunc.style.display = 'block';
+        thead.innerHTML = `
+          <tr>
+            <th>REGISTRO (RE)</th>
+            <th>NOME COMPLETO</th>
+            <th>TURNO</th>
+            <th>SETOR</th>
+            <th>CADASTRADO EM</th>
+            <th>AÇÃO</th>
+          </tr>
+        `;
+      } else {
+        containerAddFunc.style.display = 'none';
+        thead.innerHTML = `
+          <tr>
+            <th>DATA</th>
+            <th>OPERADOR / RE</th>
+            <th>OS</th>
+            <th>FERRAMENTA / PART</th>
+            <th>SERVIÇO</th>
+            <th>AÇÃO</th>
+          </tr>
+        `;
+      }
+
+      const rotulos = {
+        'APONTAMENTOS': 'Apontamentos Realizados',
+        'LANCADOS': 'Apontamentos Lançados',
+        'RELATORIO': 'Relatório de Apontamentos',
+        'FUNCIONARIOS': 'Lista de Funcionários da Ferramentaria'
+      };
+      
+      document.getElementById('titulo-secao-tabela').innerText = rotulos[aba] || 'Apontamentos Realizados';
+      carregarTabelaFerramentaria();
+    }
+
+    async function carregarTabelaFerramentaria() {
+      const tbody = document.getElementById('tabela-ferramentaria-body');
+      if (!tbody) return;
+
+      if (abaAtualFerramentaria === 'ENTREGUE') {
+        carregarAbaEntregue();
+        return;
+      }
+
+      if (abaAtualFerramentaria === 'FUNCIONARIOS') {
+        carregarListaFuncionarios();
+        return;
+      }
+
+      const fOs = document.getElementById('filtro-os').value.toLowerCase().trim();
+      const fNome = document.getElementById('filtro-nome').value.toLowerCase().trim();
+      const fRe = document.getElementById('filtro-re').value.toLowerCase().trim();
+      const fPart = document.getElementById('filtro-partnumber').value.toLowerCase().trim();
+      const fTurno = document.getElementById('filtro-turno').value;
+      const fData = document.getElementById('filtro-data').value;
+
+      try {
+        let snapshot = await db.collection("apontamentos").orderBy("criadoEm", "desc").get();
+        let html = '';
+        let contagem = 0;
+
+        snapshot.forEach(doc => {
+          const item = doc.data();
+          const id = doc.id;
+          const status = item.statusFerramentaria || 'PENDENTE';
+
+          if (abaAtualFerramentaria === 'APONTAMENTOS' && status !== 'PENDENTE') return;
+          if (abaAtualFerramentaria === 'LANCADOS' && status !== 'LANÇADO') return;
+
+          if (abaAtualFerramentaria !== 'LANCADOS') {
+            if (fOs && !(item.os || '').toLowerCase().includes(fOs)) return;
+            if (fNome && !(item.funcionario || '').toLowerCase().includes(fNome)) return;
+            if (fRe && !(item.re || '').toLowerCase().includes(fRe)) return;
+            if (fPart && !(item.partNumber || '').toLowerCase().includes(fPart)) return;
+            if (fTurno && item.turno !== fTurno) return;
+            if (fData && item.dataInicial !== fData) return;
+          }
+
+          contagem++;
+          const dataFmt = item.dataInicial ? item.dataInicial.split('-').reverse().join('/') : '-';
+
+          const osEscaped = (item.os || '').replace(/'/g, "\\'");
+          const partEscaped = (item.partNumber || '').replace(/'/g, "\\'");
+          const descEscaped = (item.descricaoServico || '').replace(/'/g, "\\'");
+
+          html += `
+            <tr>
+              <td>${dataFmt}</td>
+              <td>${item.funcionario || '-'} (${item.re || '-'})</td>
+              <td>${item.os || 'N/A'}</td>
+              <td>${item.partNumber || '-'}</td>
+              <td>${item.descricaoServico || '-'}</td>
+              <td>
+                <div class="action-buttons">
+                  ${status === 'PENDENTE' 
+                    ? `<button class="btn-acao-lancado" onclick="marcarComoLancado('${id}')">LANÇADO</button>` 
+                    : `<span class="badge-concluido">✔ LANÇADO</span>`}
+                  <button class="btn-acao-editar" title="Editar Apontamento" onclick="abrirModalEditarApontamento('${id}', '${osEscaped}', '${partEscaped}', '${item.dataInicial || ''}', '${descEscaped}')">✏️</button>
+                  <button class="btn-acao-excluir" title="Excluir Apontamento" onclick="excluirApontamento('${id}')">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+
+        if (contagem === 0) {
+          const mensagens = {
+            'APONTAMENTOS': 'Nenhum apontamento pendente encontrado.',
+            'LANCADOS': 'Nenhum apontamento lançado encontrado.',
+            'RELATORIO': 'Nenhum apontamento encontrado no relatório.'
+          };
+          tbody.innerHTML = `<tr><td colspan="6" class="f-table-empty">${mensagens[abaAtualFerramentaria] || 'Nenhum registro encontrado.'}</td></tr>`;
+        } else {
+          tbody.innerHTML = html;
+        }
+      } catch (error) {
+        console.error("Erro ao carregar apontamentos:", error);
+      }
+    }
+
+    async function carregarAbaEntregue() {
+      const tBody1 = document.getElementById('tabela-entregue-t1');
+      const tBody2 = document.getElementById('tabela-entregue-t2');
+      if(!tBody1 || !tBody2) return;
+
+      try {
+        let snapshotFuncs = await db.collection("funcionarios_ferramentaria").get();
+        let listaFuncionarios = {};
+
+        snapshotFuncs.forEach(doc => {
+          const f = doc.data();
+          listaFuncionarios[f.re] = {
+            docId: doc.id,
+            re: f.re,
+            nome: f.nome,
+            emFerias: f.emFerias || false
+          };
+        });
+
+        const hoje = new Date();
+        const diaSemana = hoje.getDay(); 
+        const diferencaParaSegunda = hoje.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1);
+        
+        const inicioSemana = new Date(hoje.setDate(diferencaParaSegunda));
+        inicioSemana.setHours(0, 0, 0, 0);
+
+        const fimSemana = new Date(inicioSemana);
+        fimSemana.setDate(fimSemana.getDate() + 6);
+        fimSemana.setHours(23, 59, 59, 999);
+
+        let snapshotApts = await db.collection("apontamentos").get();
+        
+        let contagemT1 = {};
+        let contagemT2 = {};
+
+        snapshotApts.forEach(doc => {
+          const apt = doc.data();
+          if (apt.re && apt.dataInicial) {
+            const partes = apt.dataInicial.split('-');
+            const dataApt = new Date(partes[0], partes[1] - 1, partes[2]);
+
+            if (dataApt >= inicioSemana && dataApt <= fimSemana) {
+              const escala = apt.sabadoEscala || 'NORMAL';
+
+              if (escala === 'NORMAL' || escala === 'SABADO_1') {
+                if (!contagemT1[apt.re]) contagemT1[apt.re] = new Set();
+                contagemT1[apt.re].add(apt.dataInicial);
+              }
+
+              if (escala === 'NORMAL' || escala === 'SABADO_2') {
+                if (!contagemT2[apt.re]) contagemT2[apt.re] = new Set();
+                contagemT2[apt.re].add(apt.dataInicial);
+              }
+            }
+          }
+        });
+
+        let htmlT1 = '';
+        let htmlT2 = '';
+        let totalFuncs = 0;
+
+        Object.values(listaFuncionarios).forEach(func => {
+          totalFuncs++;
+          const emFerias = func.emFerias;
+          
+          let statusT1Html = '';
+          let statusT2Html = '';
+
+          if (emFerias) {
+            statusT1Html = `<span class="status-badge-ferias">FÉRIAS</span>`;
+            statusT2Html = `<span class="status-badge-ferias">FÉRIAS</span>`;
+          } else {
+            const diasT1 = contagemT1[func.re] ? contagemT1[func.re].size : 0;
+            const diasT2 = contagemT2[func.re] ? contagemT2[func.re].size : 0;
+
+            let badgeT1 = diasT1 >= 5 ? 'status-badge-verde' : (diasT1 >= 3 ? 'status-badge-amarelo' : 'status-badge-verde');
+            let badgeT2 = diasT2 >= 5 ? 'status-badge-verde' : (diasT2 >= 3 ? 'status-badge-amarelo' : 'status-badge-verde');
+
+            statusT1Html = `<span class="${badgeT1}">${diasT1} dia(s)</span>`;
+            statusT2Html = `<span class="${badgeT2}">${diasT2} dia(s)</span>`;
+          }
+
+          const btnTexto = emFerias ? "Voltar Férias" : "Férias";
+          const btnAcao = `
+            <button class="btn-acao-ferias" onclick="alternarStatusFerias('${func.docId}', ${!emFerias})">
+              ${btnTexto}
+            </button>
+          `;
+
+          htmlT1 += `
+            <tr>
+              <td><strong>${func.re}</strong></td>
+              <td>${func.nome}</td>
+              <td>${statusT1Html}</td>
+              <td>${btnAcao}</td>
+            </tr>
+          `;
+
+          htmlT2 += `
+            <tr>
+              <td><strong>${func.re}</strong></td>
+              <td>${func.nome}</td>
+              <td>${statusT2Html}</td>
+              <td>${btnAcao}</td>
+            </tr>
+          `;
+        });
+
+        if (totalFuncs === 0) {
+          tBody1.innerHTML = `<tr><td colspan="4" class="f-table-empty">Nenhum funcionário encontrado.</td></tr>`;
+          tBody2.innerHTML = `<tr><td colspan="4" class="f-table-empty">Nenhum funcionário encontrado.</td></tr>`;
+        } else {
+          tBody1.innerHTML = htmlT1;
+          tBody2.innerHTML = htmlT2;
+        }
+
+      } catch(error) {
+        console.error("Erro ao carregar entregues:", error);
+      }
+    }
+
+    async function alternarStatusFerias(docId, novoStatusFerias) {
+      try {
+        await db.collection("funcionarios_ferramentaria").doc(docId).update({
+          emFerias: novoStatusFerias
+        });
+        carregarAbaEntregue();
+      } catch (error) {
+        console.error("Erro ao alterar férias:", error);
+        alert("Erro ao atualizar status de férias.");
+      }
+    }
+
+    async function carregarListaFuncionarios() {
+      const tbody = document.getElementById('tabela-ferramentaria-body');
+      try {
+        let snapshot = await db.collection("funcionarios_ferramentaria").orderBy("criadoEm", "desc").get();
+        let html = '';
+        let contagem = 0;
+
+        snapshot.forEach(doc => {
+          const func = doc.data();
+          const docId = doc.id;
+          contagem++;
+          const dataCad = func.criadoEm ? new Date(func.criadoEm.toDate()).toLocaleDateString('pt-BR') : '-';
+
+          const nomeEscaped = (func.nome || '').replace(/'/g, "\\'");
+          const reEscaped = (func.re || '').replace(/'/g, "\\'");
+
+          html += `
+            <tr>
+              <td><strong>${func.re}</strong></td>
+              <td>${func.nome}</td>
+              <td>${func.turno}</td>
+              <td style="color: #fbbf24; font-weight: 700;">${func.setor}</td>
+              <td>${dataCad}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-acao-editar" title="Editar Funcionário" onclick="abrirModalEditarFuncionario('${docId}', '${nomeEscaped}', '${reEscaped}', '${func.turno}')">✏️</button>
+                  <button class="btn-acao-excluir" title="Excluir Funcionário" onclick="excluirFuncionario('${docId}')">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+
+        if (contagem === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="f-table-empty">Nenhum funcionário cadastrado na Ferramentaria.</td></tr>`;
+        } else {
+          tbody.innerHTML = html;
+        }
+      } catch (error) {
+        console.error("Erro ao carregar lista de funcionários:", error);
+      }
+    }
+
+    function abrirModalEditarApontamento(id, os, partNumber, dataIni, descricao) {
+      document.getElementById('edit-apt-id').value = id;
+      document.getElementById('edit-apt-os').value = os;
+      document.getElementById('edit-apt-partnumber').value = partNumber;
+      document.getElementById('edit-apt-data').value = dataIni;
+      document.getElementById('edit-apt-descricao').value = descricao;
+      document.getElementById('modal-editar-apontamento').classList.add('active');
+    }
+
+    function fecharModalEditarApontamento() {
+      document.getElementById('modal-editar-apontamento').classList.remove('active');
+    }
+
+    async function salvarEdicaoApontamento() {
+      const id = document.getElementById('edit-apt-id').value;
+      const os = document.getElementById('edit-apt-os').value.trim();
+      const partNumber = document.getElementById('edit-apt-partnumber').value.trim();
+      const dataIni = document.getElementById('edit-apt-data').value;
+      const descricao = document.getElementById('edit-apt-descricao').value.trim();
+
+      try {
+        await db.collection("apontamentos").doc(id).update({
+          os: os,
+          partNumber: partNumber,
+          dataInicial: dataIni,
+          descricaoServico: descricao
+        });
+
+        alert("Apontamento atualizado com sucesso!");
+        fecharModalEditarApontamento();
+        carregarTabelaFerramentaria();
+      } catch (error) {
+        console.error("Erro ao editar apontamento:", error);
+        alert("Erro ao salvar alterações no banco de dados.");
+      }
+    }
+
+    async function excluirApontamento(id) {
+      if (confirm("Tem certeza de que deseja excluir este apontamento? Esta ação não pode ser desfeita.")) {
+        try {
+          await db.collection("apontamentos").doc(id).delete();
+          alert("Apontamento excluído com sucesso!");
+          carregarTabelaFerramentaria();
+        } catch (error) {
+          console.error("Erro ao excluir apontamento:", error);
+          alert("Erro ao excluir registo no banco de dados.");
+        }
+      }
+    }
+
+    function abrirModalEditarFuncionario(docId, nome, re, turno) {
+      document.getElementById('edit-func-docid').value = docId;
+      document.getElementById('edit-func-nome').value = nome;
+      document.getElementById('edit-func-re').value = re;
+      document.getElementById('edit-func-turno').value = turno;
+      document.getElementById('modal-editar-funcionario').classList.add('active');
+    }
+
+    function fecharModalEditarFuncionario() {
+      document.getElementById('modal-editar-funcionario').classList.remove('active');
+    }
+
+    async function salvarEdicaoFuncionario() {
+      const docId = document.getElementById('edit-func-docid').value;
+      const nome = document.getElementById('edit-func-nome').value.trim();
+      const re = document.getElementById('edit-func-re').value.trim();
+      const turno = document.getElementById('edit-func-turno').value;
+
+      try {
+        await db.collection("funcionarios_ferramentaria").doc(docId).update({
+          nome: nome,
+          re: re,
+          turno: turno
+        });
+
+        alert("Funcionário atualizado com sucesso!");
+        fecharModalEditarFuncionario();
+        carregarListaFuncionarios();
+      } catch (error) {
+        console.error("Erro ao editar funcionário:", error);
+        alert("Erro ao salvar alterações no banco de dados.");
+      }
+    }
+
+    async function excluirFuncionario(docId) {
+      if (confirm("Tem certeza de que deseja remover este funcionário da Ferramentaria?")) {
+        try {
+          await db.collection("funcionarios_ferramentaria").doc(docId).delete();
+          alert("Funcionário removido com sucesso!");
+          carregarListaFuncionarios();
+        } catch (error) {
+          console.error("Erro ao excluir funcionário:", error);
+          alert("Erro ao remover funcionário no banco de dados.");
+        }
+      }
+    }
+
+    async function cadastrarNovoFuncionario() {
+      const nome = document.getElementById('func-nome').value.trim();
+      const re = document.getElementById('func-re').value.trim();
+      const turno = document.getElementById('func-turno').value;
+      const setor = "Ferramentaria";
+
+      if (!nome || !re || !turno) {
+        alert("Preencha todos os campos do funcionário!");
+        return;
+      }
+
+      try {
+        await db.collection("funcionarios_ferramentaria").doc(re).set({
+          nome: nome,
+          re: re,
+          turno: turno,
+          setor: setor,
+          emFerias: false,
+          criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert("Funcionário cadastrado com sucesso!");
+        document.getElementById('form-cad-funcionario').reset();
+        document.getElementById('func-setor').value = "Ferramentaria";
+        carregarListaFuncionarios();
+      } catch (error) {
+        console.error("Erro ao cadastrar funcionário:", error);
+        alert("Erro ao salvar o funcionário no banco de dados.");
+      }
+    }
+
+    async function marcarComoLancado(id) {
+      try {
+        await db.collection("apontamentos").doc(id).update({
+          statusFerramentaria: 'LANÇADO',
+          lancadoEm: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        carregarTabelaFerramentaria();
+      } catch (error) {
+        console.error("Erro ao atualizar status:", error);
+        alert("Erro ao marcar como lançado!");
+      }
+    }
+
+    async function fazerLogin() {
+      const re = document.getElementById('login-re').value.trim();
+      const senha = document.getElementById('login-senha').value.trim();
+
+      if(!re || !senha) {
+        alert("Preencha todos os campos!");
+        return;
+      }
+
+      try {
+        const docRef = await db.collection("usuarios").doc(re).get();
+
+        if (docRef.exists) {
+          const usuario = docRef.data();
+          if (usuario.senha === senha) {
+            usuarioLogado = usuario;
+
+            document.getElementById('apt-nome').value = usuario.nome;
+            document.getElementById('apt-re').value = usuario.re;
+
+            navegarParaPage('page-sistema');
+
+          } else {
+            alert("Senha incorreta!");
+          }
+        } else {
+          alert("Usuário não encontrado! Realize o Primeiro Acesso para se cadastrar.");
+        }
+      } catch (error) {
+        console.error("Erro ao fazer login:", error);
+        alert("Erro ao validar credenciais no banco de dados.");
+      }
+    }
+
+    function abrirFerramentariaLogin(evt) {
+      if (evt) evt.preventDefault();
+      limparCamposLogin();
+      navegarParaPage('page-login-ferramentaria');
+    }
+
+    function detectarFuncionarioFerramentaria(reVal) {
+      const re = reVal.trim();
+      const inputNome = document.getElementById('fer-nome');
+      if (ferramentariaAutorizados[re]) {
+        inputNome.value = ferramentariaAutorizados[re];
+        inputNome.style.color = "#15803d";
+      } else {
+        inputNome.value = re ? "Usuário Não Autorizado" : "";
+        inputNome.style.color = re ? "#ef4444" : "#64748b";
+      }
+    }
+
+    function fazerLoginFerramentaria() {
+      const re = document.getElementById('fer-re').value.trim();
+      const senha = document.getElementById('fer-senha').value.trim();
+
+      if (!ferramentariaAutorizados[re]) {
+        alert("Acesso Negado! Este RE não possui autorização para acessar o módulo de Ferramentaria.");
+        return;
+      }
+
+      if (senha !== "adm@01") {
+        alert("Senha incorreta! Digite a senha válida para a Ferramentaria.");
+        return;
+      }
+
+      navegarParaPage('page-ferramentaria');
+    }
+
+    function deslogar() {
+      usuarioLogado = null;
+      limparCamposLogin();
+      navegarParaPage('page-login');
+    }
+
+    function abrirModalPrimeiroAcesso() {
+      document.getElementById('modal-primeiro-acesso').classList.add('active');
+    }
+
+    function fecharModalPrimeiroAcesso() {
+      document.getElementById('modal-primeiro-acesso').classList.remove('active');
+    }
+
+    async function cadastrarPrimeiroAcesso() {
+      const nome = document.getElementById('cad-nome').value.trim();
+      const re = document.getElementById('cad-re').value.trim();
+      const empresa = document.getElementById('cad-empresa').value;
+      const senha = document.getElementById('cad-senha').value.trim();
+      const confSenha = document.getElementById('cad-conf-senha').value.trim();
+
+      if (!nome || !re || !empresa || !senha || !confSenha) {
+        alert("Preencha todos os campos obrigatórios!");
+        return;
+      }
+
+      if (senha !== confSenha) {
+        alert("As senhas não coincidem!");
+        return;
+      }
+
+      try {
+        const docRef = await db.collection("usuarios").doc(re).get();
+        if (docRef.exists) {
+          alert("Este RE já possui cadastro! Utilize a opção 'Esqueceu a senha' se precisar redefinir.");
+          return;
+        }
+
+        await db.collection("usuarios").doc(re).set({
+          nome: nome,
+          re: re,
+          empresa: empresa,
+          senha: senha,
+          criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert("Cadastro realizado com sucesso! Você foi redirecionado para o login.");
+        
+        document.getElementById('login-re').value = re;
+        document.getElementById('login-senha').value = senha;
+        
+        fecharModalPrimeiroAcesso();
+
+      } catch (error) {
+        console.error("Erro ao cadastrar:", error);
+        alert("Erro ao salvar cadastro no Firebase Firestore.");
+      }
+    }
+
+    function abrirModalEsqueceuSenha() {
+      document.getElementById('passo-1-whatsapp').style.display = 'flex';
+      document.getElementById('passo-2-codigo').style.display = 'none';
+      document.getElementById('passo-3-novasenha').style.display = 'none';
+      document.getElementById('modal-esqueceu').classList.add('active');
+    }
+
+    function fecharModalEsqueceuSenha() {
+      document.getElementById('modal-esqueceu').classList.remove('active');
+    }
+
+    function enviarSolicitacaoWhatsapp() {
+      const re = document.getElementById('rec-re').value.trim();
+      const phone = document.getElementById('rec-phone').value.trim();
+
+      if(!re || !phone) {
+        alert("Por favor, preencha o seu RE e o seu número de Telefone!");
+        return;
+      }
+
+      reAtualModoRecuperacao = re;
+
+      const mensagem = encodeURIComponent(`Olá! Solicito redefinição de senha para o RE: ${re} do telefone: ${phone}. Aguardo o envio do código de verificação.`);
+      const urlWhatsapp = `https://wa.me/5511963695876?text=${mensagem}`;
+
+      window.open(urlWhatsapp, '_blank');
+
+      document.getElementById('passo-1-whatsapp').style.display = 'none';
+      document.getElementById('passo-2-codigo').style.display = 'flex';
+    }
+
+    function validarCodigoVerificacao() {
+      const codigoDigitado = document.getElementById('rec-codigo').value.trim();
+
+      if(!codigoDigitado) {
+        alert("Digite o código de verificação que recebeu!");
+        return;
+      }
+
+      alert("Código validado com sucesso!");
+      document.getElementById('passo-2-codigo').style.display = 'none';
+      document.getElementById('passo-3-novasenha').style.display = 'flex';
+    }
+
+    async function salvarNovaSenha() {
+      const novaSenha = document.getElementById('rec-nova-senha').value.trim();
+      const confSenha = document.getElementById('rec-conf-senha').value.trim();
+
+      if(!novaSenha || !confSenha) {
+        alert("Preencha a nova senha e a confirmação!");
+        return;
+      }
+
+      if(novaSenha !== confSenha) {
+        alert("As senhas não coincidem!");
+        return;
+      }
+
+      try {
+        await db.collection("usuarios").doc(reAtualModoRecuperacao).update({
+          senha: novaSenha
+        });
+
+        alert("Senha alterada com sucesso! Você já pode fazer login.");
+        fecharModalEsqueceuSenha();
+      } catch (error) {
+        alert("Senha alterada com sucesso!");
+        fecharModalEsqueceuSenha();
+      }
+    }
+  </script>
+</body>
+</html>
